@@ -10,6 +10,7 @@ What This Script Helps You Do
   Visualize levels and signals directly on the chart.
 
   A custom intraday trading indicator called CAM_ORB. It combines:
+  
     Opening Range Breakout (ORB) strategy
     Camarilla Pivot Levels
     A volume filter to validate signals
