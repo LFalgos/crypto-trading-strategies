@@ -1,0 +1,29 @@
+//@version=5
+indicator("H_POC ", overlay = true)
+//src = input(title="Source", defval=close)
+
+import PineCoders/VisibleChart/1 as locview  //import library later used in script
+
+const int numlev = 10    // number of point of control levels
+var float[] price_ranges = array.new_float(numlev + 1, 0.0)  
+var float[] vol_ranges = array.new_float(numlev, 0.0)  
+
+//close and volume at finer 1-min resolution
+[close_in_fine, vol_in_fine] = request.security(syminfo.tickerid, "1", [close, volume])
+
+if locview.barIsVisible() //time == chart.right_visible_bar_time //locview.barIsVisible() //
+    for i = 0 to numlev
+        array.set(price_ranges, i, locview.low() + i*(locview.high()-locview.low())/numlev) 
+
+if locview.barIsVisible() //time >= chart.left_visible_bar_time //locview.barIsVisible() 
+    for i = 0 to numlev-1  // i represents levels
+        for j = 0 to locview.rightBarIndex()-locview.leftBarIndex()  //enables looking back in time
+            if (close_in_fine[j] >= array.get(price_ranges, i) and close_in_fine[j] < array.get(price_ranges, i+1))
+                array.set(vol_ranges, i, vol_in_fine[j] + array.get(vol_ranges, i))
+
+len = locview.rightBarIndex()-locview.leftBarIndex()
+if time >= chart.right_visible_bar_time 
+    for i = 0 to numlev-1 
+        line.new(time[len], array.avg(array.slice(price_ranges, i, i+2)), 
+         time[int(len - 0.9*len*array.get(vol_ranges, i)/array.max(vol_ranges))], array.avg(array.slice(price_ranges, i, i+2)), 
+         xloc=xloc.bar_time, style=line.style_solid, color=color.rgb(159, 162, 165), width=8)

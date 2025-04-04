@@ -1,0 +1,583 @@
+//@version=5
+indicator("Apex_InOut_Day", overlay = true)
+//src = input(title="Source", defval=close)
+
+import PineCoders/VisibleChart/1 as locview  //import library later used in script
+
+//Calculating Timeframe 
+//tf=timeframe.period
+const string tf="30"
+var string mytime =""
+
+//variables automatically updated later in script
+var int bias0=0
+var int bias1=0
+var int bias2=0
+var int bias3=0
+var int bias4=0
+
+// Assign default value to inputs
+
+var int tempbias = 1
+
+s0 = syminfo.ticker,            varip int predefbias0=1,     var float[] level0 = array.from(0.0, 0.0)
+
+// only for bias and levels
+s5=input.symbol("MNQ1!"),       varip int predefbias5=2,     var float[] level5 = array.from(20704, 0.0)       
+
+s1=input.symbol("6J1!"),       varip int predefbias1=2,     var float[] level1 = array.from(0.0065105, 0.0)        
+s2=input.symbol("6C1!"),       varip int predefbias2=2,     var float[] level2 = array.from(0.71950, 0.0)       //EURUSD
+s3=input.symbol("ZS1!"),        varip int predefbias3=2,     var float[] level3 = array.from(1010, 0.0)    //JPYUSD
+s4=input.symbol("6N1!"),        varip int predefbias4=2,     var float[] level4 = array.from(0.59625, 0.0)      //CADUSD
+
+
+// set levels for currently viewed ticker
+if s0==syminfo.ticker(s1)
+    level0 := level1, predefbias0 := predefbias1
+else if s0==syminfo.ticker(s2)
+    level0 := level2, predefbias0 := predefbias2
+else if s0==syminfo.ticker(s3)
+    level0 := level3, predefbias0 := predefbias3
+else if s0==syminfo.ticker(s4)
+    level0 := level4, predefbias0 := predefbias4
+else if s0==syminfo.ticker(s5)
+    level0 := level5, predefbias0 := predefbias5
+
+// Initialization of bias
+varip int defbias0 = 1, varip int defbias1 = 1, varip int defbias2 = 1
+varip int defbias3 = 1, varip int defbias4 = 1, varip int defbias5 = 1
+
+t = time(timeframe.period, "0200-0400,0600-1000,2000-2200", "America/New_York")
+Is_premark = hour(time, "America/New_York") >= 2 and hour(time, "America/New_York") < 4
+
+Is_0600 = hour(time, "America/New_York") == 6 and minute(time, "America/New_York") == 0
+if Is_0600
+    defbias0 := predefbias0
+    defbias1 := predefbias1
+    defbias2 := predefbias2
+    defbias3 := predefbias3
+    defbias4 := predefbias4
+
+var int tempstate = 0
+var int mystate0 = 0 
+var int mystate1 = 0, var int mystate2 = 0
+var int mystate3 = 0, var int mystate4 = 0
+
+var int myindex = 0
+
+var string sname0 = ""
+var string sname1 = "", var string sname2 = ""
+var string sname3 = "", var string sname4 = "", var string sname_all = ""
+
+var float[] pmhl_temp = array.from(0.0, 100000.0)
+var float[] pmhl_array0 = array.from(0.0, 100000.0)
+var float[] pmhl_array1 = array.from(0.0, 100000.0)
+var float[] pmhl_array2 = array.from(0.0, 100000.0)
+var float[] pmhl_array3 = array.from(0.0, 100000.0)
+var float[] pmhl_array4 = array.from(0.0, 100000.0)
+
+var bool mybarcol = false
+
+var float[] cam_temp = array.new_float(3)
+var float[] cam_pivs0 = array.new_float(3)
+var float[] cam_pivs1 = array.new_float(3)
+var float[] cam_pivs2 = array.new_float(3)
+var float[] cam_pivs3 = array.new_float(3)
+var float[] cam_pivs4 = array.new_float(3)
+
+// Default color constants
+GREEN_COLOR   = #00ff0d40
+RED_COLOR = #ff00c81c
+
+type barData
+    varip float prev0 = 0.0
+    varip float cur0 = 0.0
+    varip float prevhigh0 = 0.0
+    varip float curhigh0 = 0.0
+    varip float prevlow0 = 0.0
+    varip float curlow0 = 0.0
+    varip int dir0 = 0   //0 (no entry), 2 (long entry), 3 (short entry)
+
+    varip float prev1 = 0.0
+    varip float cur1 = 0.0
+    varip float prevhigh1 = 0.0
+    varip float curhigh1 = 0.0
+    varip float prevlow1 = 0.0
+    varip float curlow1 = 0.0
+    varip int dir1 = 0   //0 (no entry), 2 (long entry), 3 (short entry)
+    
+    varip float prev2 = 0.0
+    varip float cur2 = 0.0
+    varip float prevhigh2 = 0.0
+    varip float curhigh2 = 0.0
+    varip float prevlow2 = 0.0
+    varip float curlow2 = 0.0
+    varip int dir2 = 0   //0 (no entry), 2 (long entry), 3 (short entry)
+    
+    varip float prev3 = 0.0
+    varip float cur3 = 0.0
+    varip float prevhigh3 = 0.0
+    varip float curhigh3 = 0.0
+    varip float prevlow3 = 0.0
+    varip float curlow3 = 0.0
+    varip int dir3 = 0   //0 (no entry), 2 (long entry), 3 (short entry)
+    
+    varip float prev4 = 0.0
+    varip float cur4 = 0.0
+    varip float prevhigh4 = 0.0
+    varip float curhigh4 = 0.0
+    varip float prevlow4 = 0.0
+    varip float curlow4 = 0.0
+    varip int dir4 = 0   //0 (no entry), 2 (long entry), 3 (short entry)
+    
+
+var myBar = barData.new()
+
+screenerFunc() => 
+    long =((open < ta.vwap(close) and close > ta.vwap(close)) or (close >ta.vwap(close) and 
+     (close-open) > 1.25*ta.atr(6) and volume > 1.5*ta.sma(volume, 6)))
+    
+    s_doji = 0.4*(high - close) > (open - low) and math.min(close, open) < high[1]
+    
+    l_doji = 2.5*(high - close) < (open - low) and math.max(close, open) > low[1]
+
+    i_bar = low > low[1] and high < high[1]  // inside bar
+
+
+    [close, open, high, low, ta.vwap(close), ta.atr(6), long or long[1] and (s_doji or i_bar), volume]
+
+var int mycount = 0
+mycount := Is_0600?1:mycount + 1
+
+barcolor(mybarcol ? color.white: na, -1)
+
+//*************************************************************** Plot Cams ***********************************
+var float Dclose = na, var float Dlow = na, var float Dhigh = na
+//Global Cams
+var float R4g = na, var float R3g = na, var float R2g = na, var float R1g = na
+var float S4g = na, var float S3g = na, var float S2g = na, var float S1g = na
+
+Dclose := Is_0600 ? request.security(syminfo.tickerid, "D", close):Dclose
+Dlow := Is_0600 ? request.security(syminfo.tickerid, "D", low):Dlow
+Dhigh := Is_0600 ? request.security(syminfo.tickerid, "D", high):Dhigh
+
+if time == chart.right_visible_bar_time 
+
+    R4g := (Dhigh - Dlow)*1.1/2 + Dclose
+    R3g := (Dhigh - Dlow)*1.1/4 + Dclose
+    R2g := (Dhigh - Dlow)*1.1/6 + Dclose
+    R1g := (Dhigh - Dlow)*1.1/12 + Dclose
+
+    S1g := Dclose - (Dhigh - Dlow)*1.1/12
+    S2g := Dclose - (Dhigh - Dlow)*1.1/6
+    S3g := Dclose - (Dhigh - Dlow)*1.1/4
+    S4g := Dclose - (Dhigh - Dlow)*1.1/2
+
+    line.new(time[48], R3g, time, R3g, xloc=xloc.bar_time, style=line.style_solid, color=color.red, width=1)
+
+    line.new(time[48], S3g, time, S3g, xloc=xloc.bar_time, style=line.style_solid, color=color.blue, width=1)
+
+//******************************************************************************************************************
+
+plot(ta.vwap(close), color=color.rgb(255, 213, 0), linewidth = 2)
+// plot(ta.ema(close, 5), color=color.blue, linewidth = 1)
+//plot(ta.sma(volume, 6), color=color.black, linewidth = 2)
+
+
+findstate(mysym, mystate_in, close_in, open_in, high_in, low_in, vwap_in, atr_in, vol_in, cam_pivs_in, bias_in) => 
+
+    var int result = mystate_in
+
+    if Is_0600
+        result := 0 
+
+    else if (close_in > high_in[1] and bias_in==2 
+         and vwap_in > vwap_in[1] and close_in > vwap_in 
+         and not na(t))     
+         // Bullish
+        result := 2
+
+    else if (close_in < low_in[1] and bias_in==3 
+         and vwap_in < vwap_in[1] and close_in < vwap_in
+         and not na(t))     
+         // Bearish
+        result := 3
+
+    else 
+        result := 0
+    
+    result
+
+longshort(mysym, mystate_in, dir_in, close_in, high_in, low_in, defbias_in, bias_in) => 
+    llshort = ""
+
+    // low/high in past 24 hours
+    lods = ta.lowest(low_in, 48)
+    hods = ta.highest(high_in, 48)
+       
+    //Entry bias
+    entry_bias =  if defbias_in==3 // or (defbias_in==1 and bias_in==3)
+        " SS Bias"
+    else if defbias_in==2 //or (defbias_in==1 and bias_in==2)
+        " LL Bias"
+    else
+        ""
+
+    // Exit condition
+    exit_cond = if dir_in ==0 and close_in < low_in[1] and high_in < high_in[1]
+        "Exit Long "
+    else if dir_in ==0 and close_in > high_in[1] and low_in > low_in[1]
+        "Exit Short "
+    else
+        ""
+
+    lhod = if 0.9999*close_in <= lods
+        "LoD "
+    else if 1.0001*close_in >= hods
+        "HoD "
+    else
+        ""
+
+    if (mystate_in ==2 and mystate_in[1] !=2 and not na(t))
+        llshort :=  "Enter Long " + lhod + syminfo.ticker(mysym) + " " + str.tostring(close_in) + entry_bias  + "\n"
+    else if (mystate_in ==3 and mystate_in[1] !=3 and not na(t))
+        llshort := "Enter Short " + lhod + syminfo.ticker(mysym) + " " + str.tostring(close_in) + entry_bias + "\n"
+    else if (dir_in ==0 and dir_in[1] != 0 and exit_cond != "")
+        llshort := exit_cond + syminfo.ticker(mysym) + " " + str.tostring(close_in) + "\n"
+    else
+        llshort := na  
+    llshort
+
+myCams() => 
+    [prev_close0, prev_low0, prev_high0] = request.security(syminfo.tickerid, "D", [close, low, high])   
+    array.set(cam_pivs0, 0, prev_close0)
+    array.set(cam_pivs0, 1, prev_low0)
+    array.set(cam_pivs0, 2, prev_high0)
+
+    [prev_close1, prev_low1, prev_high1] = request.security(s1, "D", [close, low, high])   
+    array.set(cam_pivs1, 0, prev_close1)
+    array.set(cam_pivs1, 1, prev_low1)
+    array.set(cam_pivs1, 2, prev_high1)
+
+    [prev_close2, prev_low2, prev_high2] = request.security(s2, "D", [close, low, high])   
+    array.set(cam_pivs2, 0, prev_close2)
+    array.set(cam_pivs2, 1, prev_low2)
+    array.set(cam_pivs2, 2, prev_high2)
+
+    [prev_close3, prev_low3, prev_high3] = request.security(s3, "D", [close, low, high])   
+    array.set(cam_pivs3, 0, prev_close3)
+    array.set(cam_pivs3, 1, prev_low3)
+    array.set(cam_pivs3, 2, prev_high3)
+
+    [prev_close4, prev_low4, prev_high4] = request.security(s4, "D", [close, low, high])   
+    array.set(cam_pivs4, 0, prev_close4)
+    array.set(cam_pivs4, 1, prev_low4)
+    array.set(cam_pivs4, 2, prev_high4)
+
+    a = 1.0
+
+getpoc(mysym, close_in, vwap_in, high_in, low_in, atr_in, vol_in, bias_in) =>
+    const int numlev = 10    // number of point of control levels
+    var float[] price_ranges = array.new_float(numlev + 1, 0.0)  
+    var float[] vol_ranges = array.new_float(numlev, 0.0)
+    var float maxvol = 0.0  
+    var int maxvol_index = 0
+    var int prev_index = 0
+    var int result = 0
+
+    //number of candles for 5-min time interval (5-hrs total)
+    const int span = 60
+   
+    //divided by number of 5-min candles in 30-min
+    low10 = ta.lowest(low_in, int(span/6))
+    high10 = ta.highest(high_in, int(span/6))
+
+    //close and volume at finer 5-min resolution
+    [close_in_fine, _, high_in_fine, low_in_fine, vwap_in_fine, _, _, vol_in_fine] = request.security(mysym, "5", screenerFunc())
+    
+    basis = ta.sma(close_in_fine, span)
+    dev = 2.0 * ta.stdev(close_in_fine, span)
+    bol_upper = basis + dev
+    bol_lower = basis - dev
+      
+    if (not na(t))  //search for reversal only during interval of interest
+        for i = 0 to numlev
+            array.set(price_ranges, i, low10 + i*(high10-low10)/numlev) 
+
+        for i = 0 to numlev-1  // i represents levels
+            if (array.get(vol_ranges, i) >= maxvol)
+                prev_index := maxvol_index
+                maxvol := array.get(vol_ranges, i)
+                maxvol_index := i
+
+            for j = 0 to span  //enables looking back in time
+                if (close_in_fine[j] >= array.get(price_ranges, i) and close_in_fine[j] < array.get(price_ranges, i+1))
+                    array.set(vol_ranges, i, vol_in_fine[j] + array.get(vol_ranges, i))
+                
+        if Is_0600
+            result := 0 
+
+        else if (close_in < array.get(price_ranges, maxvol_index)
+             and high_in > bol_upper 
+             and close_in_fine < low_in_fine[1] and high_in_fine < high_in_fine[1]
+             and bias_in==3 and not na(t))
+            //Short at Peak
+            result := 3
+
+  
+        else if (close_in > array.get(price_ranges, maxvol_index)
+             and low_in < bol_lower
+             and close_in_fine > high_in_fine[1] and low_in_fine > low_in_fine[1]
+             and bias_in==2 and not na(t))
+            //Long at Min
+            result := 2
+
+        else
+            result := 0        
+    else
+        result := 0
+
+    result
+
+getphl (pmhl_array_in, high_in, low_in) =>
+    //Determine premarket high and low
+
+    if (hour(time, "America/New_York") == 4 and minute(time, "America/New_York") == 0)
+        array.set(pmhl_array_in, 0, 0.0)
+        array.set(pmhl_array_in, 1, 100000.0)
+    else if (hour(time, "America/New_York") < 6 
+         or (hour(time, "America/New_York") == 6 and minute(time, "America/New_York") < 0))
+        if (high_in >= array.get(pmhl_array_in, 0)) //and not na(tm))
+            array.set(pmhl_array_in, 0, high_in)
+        if (low_in <= array.get(pmhl_array_in, 1))
+            array.set(pmhl_array_in, 1, low_in)
+
+// Calc the default bias
+calc_defbias(close_in, cam_pivs_in, levels_in, bias_in) => 
+    prev_close = array.get(cam_pivs_in, 0)
+    prev_low = array.get(cam_pivs_in, 1)
+    prev_high = array.get(cam_pivs_in, 2)
+    
+    R3 = (prev_high - prev_low)*1.1/4 + prev_close
+    R1 = (prev_high - prev_low)*1.1/12 + prev_close
+    
+    S3 = prev_close - (prev_high - prev_low)*1.1/4
+    S1 = prev_close - (prev_high - prev_low)*1.1/12
+
+    tup = ta.sma(prev_high, 20)
+    tmid = ta.sma(prev_close, 20)
+    tdn = ta.sma(prev_low, 20)
+
+    midxover = ta.crossover(close_in, tmid)
+    midxunder = ta.crossunder(close_in, tmid)
+
+    result = bias_in
+
+    b2 = bias_in==2 //or bias_in==1
+    b3 = bias_in==3 //or bias_in==1
+
+    for level in levels_in
+        if level != 0.0     
+            if Is_premark and close_in > level and close_in >= R3 and close_in > tup and b2
+                result :=2
+            else if Is_premark and close_in < level and close_in <= S3 and close_in < tdn and b3
+                result :=3
+            else if close_in > level and close_in > tup and close_in < S1 and b2
+                result := 2
+            else if close_in < level and close_in < tdn and close_in > R1 and b3
+                result := 3
+            else if close_in > level and midxover and b2
+                result := 2
+            else if close_in < level and midxunder and b3
+                result := 3
+    result
+
+// refine condition for long/short bias
+level_event(close_in, high_in, low_in, vwap_in, levels_in, pmhl_array_in, bias_in) => 
+    result = bias_in
+
+    // Premarket high/low
+    pmh = array.get(pmhl_array_in, 0)
+    pml = array.get(pmhl_array_in, 1)
+
+    b2 = (bias_in==2 or bias_in==1) and close_in > pml        //if b2 is true then bias is long
+    b3 = (bias_in==3 or bias_in==1) and close_in < pmh        //if b3 is true then bias is short
+
+    if b2
+        result := 2
+    else if b3
+        result := 3
+    else
+        result := 0
+
+    result
+
+calc_bias (prev_in, cur_in, ph_in, ch_in, pl_in, cl_in, bias_in) =>
+    bias_out = bias_in
+    
+    // Look for entry opportunities if bid-ask spread is low
+    if math.abs(cur_in - prev_in) < 0.02 or math.abs(cur_in - prev_in) <= 0.03*cur_in/100 
+        if (ch_in > ph_in and bias_in ==2)          //ch_in (current high) > ph_in (previous high)
+            bias_out := 2
+        else if (cl_in < pl_in and bias_in==3)      //cl_in (current low) < pl_in (previous low)
+            bias_out := 3
+    bias_out
+
+// calculates the campivots for all tickers at 9:30am
+tempvar = Is_0600 ? myCams():na
+
+[close0, open0, high0, low0, vwap0, atr0, long0, vol0] = request.security(syminfo.tickerid, tf, screenerFunc())
+myBar.prev0 := myBar.cur0, myBar.cur0 := close0
+myBar.prevhigh0 := myBar.curhigh0, myBar.curhigh0 := high0
+myBar.prevlow0 := myBar.curlow0, myBar.curlow0 := low0
+
+getphl(pmhl_array0, high0, low0)
+pmhl_temp := pmhl_array0
+
+defbias0 := calc_defbias(close0, cam_pivs0, level0, defbias0)
+tempbias := level_event(close0, high0, low0, vwap0, level0, pmhl_array0, defbias0)
+bias0 := calc_bias(myBar.prev0, myBar.cur0, myBar.prevhigh0, myBar.curhigh0, 
+ myBar.prevlow0, myBar.curlow0,  tempbias)
+
+tempstate := getpoc(syminfo.tickerid, close0, vwap0, high0, low0, atr0, vol0, tempbias)
+mystate0 := findstate(syminfo.tickerid, mystate0, close0, open0, high0, low0, vwap0, atr0, vol0, cam_pivs0, bias0)
+mystate0 := (tempstate==0)?mystate0:tempstate
+
+if myBar.dir0 == 2 and close0 < low0[1] and high0 < high0[1]
+    myBar.dir0 := 0
+else if myBar.dir0 == 3 and close0 > high0[1] and low0 > low0[1] 
+    myBar.dir0 := 0
+else if mystate0 == 2
+    myBar.dir0 := 2
+else if mystate0 == 3
+    myBar.dir0 := 3
+
+sname0 := longshort(syminfo.tickerid, mystate0, myBar.dir0, close0, high0, low0, defbias0, tempbias)
+mybarcol := not na(sname0)?true:false
+
+[close1, open1, high1, low1, vwap1, atr1, long1, vol1] = request.security(s1, tf, screenerFunc())
+myBar.prev1 := myBar.cur1, myBar.cur1 := close1
+myBar.prevhigh1 := myBar.curhigh1, myBar.curhigh1 := high1
+myBar.prevlow1 := myBar.curlow1, myBar.curlow1 := low1
+
+getphl(pmhl_array1, high1, low1)
+pmhl_temp := pmhl_array1
+
+defbias1 := calc_defbias(close1, cam_pivs1, level1, defbias1)
+tempbias := level_event(close1, high1, low1, vwap1, level1, pmhl_array1, defbias1)
+bias1 := calc_bias(myBar.prev1, myBar.cur1, myBar.prevhigh1, myBar.curhigh1, 
+ myBar.prevlow1, myBar.curlow1,  tempbias)
+
+tempstate := getpoc(s1, close1, vwap1, high1, low1, atr1, vol1, tempbias)
+mystate1 := findstate(s1, mystate1, close1, open1, high1, low1, vwap1, atr1, vol1, cam_pivs1, bias1)
+mystate1 := (tempstate==0)?mystate1:tempstate
+
+if myBar.dir1 == 2 and close1 < low1[1] and high1 < high1[1]
+    myBar.dir1 := 0
+else if myBar.dir1 == 3 and close1 > high1[1] and low1 > low1[1] 
+    myBar.dir1 := 0
+else if mystate1 == 2
+    myBar.dir1 := 2
+else if mystate1 == 3
+    myBar.dir1 := 3
+
+sname1 := longshort(s1, mystate1, myBar.dir1, close1, high1, low1, defbias1, tempbias)
+
+[close2, open2, high2, low2, vwap2, atr2, long2, vol2] = request.security(s2, tf, screenerFunc())
+myBar.prev2 := myBar.cur2, myBar.cur2 := close2
+myBar.prevhigh2 := myBar.curhigh2, myBar.curhigh2 := high2
+myBar.prevlow2 := myBar.curlow2, myBar.curlow2 := low2
+
+getphl(pmhl_array2, high2, low2)
+pmhl_temp := pmhl_array2
+
+defbias2 := calc_defbias(close2, cam_pivs2, level2, defbias2)
+tempbias := level_event(close2, high2, low2, vwap2, level2, pmhl_array2, defbias2)
+bias2 := calc_bias(myBar.prev2, myBar.cur2, myBar.prevhigh2, myBar.curhigh2, 
+ myBar.prevlow2, myBar.curlow2,  tempbias)
+
+tempstate := getpoc(s2, close2, vwap2, high2, low2, atr2, vol2, tempbias)
+mystate2 := findstate(s2, mystate2, close2, open2, high2, low2, vwap2, atr2, vol2, cam_pivs2, bias2)
+mystate2 := (tempstate==0)?mystate2:tempstate
+
+if myBar.dir2 == 2 and close2 < low2[1] and high2 < high2[1]
+    myBar.dir2 := 0
+else if myBar.dir2 == 3 and close2 > high2[1] and low2 > low2[1] 
+    myBar.dir2 := 0
+else if mystate2 == 2
+    myBar.dir2 := 2
+else if mystate2 == 3
+    myBar.dir2 := 3
+
+sname2 := longshort(s2, mystate2, myBar.dir2, close2, high2, low2, defbias2, tempbias)
+
+[close3, open3, high3, low3, vwap3, atr3, long3, vol3] = request.security(s3, tf, screenerFunc())
+myBar.prev3 := myBar.cur3, myBar.cur3 := close3
+myBar.prevhigh3 := myBar.curhigh3, myBar.curhigh3 := high3
+myBar.prevlow3 := myBar.curlow3, myBar.curlow3 := low3
+
+getphl(pmhl_array3, high3, low3)
+pmhl_temp := pmhl_array3
+
+defbias3 := calc_defbias(close3, cam_pivs3, level3, defbias3)
+tempbias:= level_event(close3, high3, low3, vwap3, level3, pmhl_array3, defbias3)
+bias3 := calc_bias(myBar.prev3, myBar.cur3, myBar.prevhigh3, myBar.curhigh3, 
+ myBar.prevlow3, myBar.curlow3,  tempbias)
+mystate3 := findstate(s3, mystate3, close3, open3, high3, low3, vwap3, atr3, vol3, cam_pivs3, bias3)
+mystate3 := (tempstate==0)?mystate3:tempstate
+
+if myBar.dir3 == 2 and close3 < low3[1] and high3 < high3[1]
+    myBar.dir3 := 0
+else if myBar.dir3 == 3 and close3 > high3[1] and low3 > low3[1] 
+    myBar.dir3 := 0
+else if mystate3 == 2
+    myBar.dir3 := 2
+else if mystate3 == 3
+    myBar.dir3 := 3
+
+sname3 := longshort(s3, mystate3, myBar.dir3, close3, high3, low3, defbias3, tempbias)
+
+[close4, open4, high4, low4, vwap4, atr4, long4, vol4] = request.security(s4, tf, screenerFunc())
+myBar.prev4 := myBar.cur4, myBar.cur4 := close4
+myBar.prevhigh4 := myBar.curhigh4, myBar.curhigh4 := high4
+myBar.prevlow4 := myBar.curlow4, myBar.curlow4 := low4
+
+getphl(pmhl_array4, high4, low4)
+pmhl_temp := pmhl_array4
+
+defbias4 := calc_defbias(close4, cam_pivs4, level4, defbias4)
+tempbias := level_event(close4, high4, low4, vwap4, level4, pmhl_array4, defbias4)
+bias4 := calc_bias(myBar.prev4, myBar.cur4, myBar.prevhigh4, myBar.curhigh4, 
+ myBar.prevlow4, myBar.curlow4,  tempbias)
+ 
+tempstate := getpoc(s4, close4, vwap4, high4, low4, atr4, vol4, tempbias)
+mystate4 := findstate(s4, mystate4, close4, open4, high4, low4, vwap4, atr4, vol4, cam_pivs4, bias4)
+mystate4 := (tempstate==0)?mystate4:tempstate
+
+if myBar.dir4 == 2 and close4 < low4[1] and high4 < high4[1]
+    myBar.dir4 := 0
+else if myBar.dir4 == 3 and close4 > high4[1] and low4 > low4[1] 
+    myBar.dir4 := 0
+else if mystate4 == 2
+    myBar.dir4 := 2
+else if mystate4 == 3
+    myBar.dir4 := 3
+
+sname4 := longshort(s4, mystate4, myBar.dir4, close4, high4, low4, defbias4, tempbias)
+
+sname_all := str.tostring(sname0) + str.tostring(sname1) + str.tostring(sname2) + str.tostring(sname3) + str.tostring(sname4)
+
+mytime := str.tostring(hour(time, "America/New_York")) + ':' + str.tostring(minute(time, "America/New_York"))
+
+if (not na(sname_all)) 
+    alert(sname_all + mytime, alert.freq_once_per_bar)
+
+//Print premarket high and low
+if time == chart.right_visible_bar_time  
+    line.new(time[48], array.get(pmhl_array0, 0), time, array.get(pmhl_array0, 0), xloc=xloc.bar_time, style=line.style_solid, color=color.red, width=2)
+    line.new(time[48], array.get(pmhl_array0, 1), time, array.get(pmhl_array0, 1), xloc=xloc.bar_time, style=line.style_solid, color=color.blue, width=2)
+
+// // Troubleshoot current ticker    
+if (not na(sname0))
+    lab_s=label.new(bar_index, close, sname0 + mytime, color=na, textcolor = color.black, style=label.style_none, yloc=yloc.abovebar) //yloc=yloc.price)
+    label.delete(not locview.barIsVisible()?lab_s:na)
