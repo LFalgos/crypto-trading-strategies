@@ -10,11 +10,7 @@ What This Script Helps You Do
   Visualize levels and signals directly on the chart.
 
   A custom intraday trading indicator called CAM_ORB. It combines:
-
     Opening Range Breakout (ORB) strategy
-
     Camarilla Pivot Levels
-
     A volume filter to validate signals
-    
     It plots breakout levels, pivot zones, and shows potential long/short entries based on price action and volume. It's designed for scalping or short-term trading during the regular trading session.
